@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kartkówka – wkrótce</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f6f8;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #1f2937;
+}
+.card {
+    width: min(90%, 650px);
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 14px;
+    padding: 55px 35px;
+    text-align: center;
+    box-shadow: 0 12px 35px rgba(0,0,0,.08);
+}
+.gear {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 28px;
+    font-size: 82px;
+    line-height: 90px;
+    animation: spin 3s linear infinite;
+    transform-origin: center;
+    user-select: none;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+h1 {
+    margin: 0 0 14px;
+    font-size: 32px;
+}
+p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 18px;
+}
+.dots::after {
+    content: "";
+    animation: dots 1.5s steps(4, end) infinite;
+}
+@keyframes dots {
+    0% { content: ""; }
+    25% { content: "."; }
+    50% { content: ".."; }
+    75% { content: "..."; }
+    100% { content: ""; }
+}
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="gear">⚙️</div>
+    <h1>Kartkówka pojawi się lada moment</h1>
+    <p>Już Ci się tak śpieszy, żeby ją napisać?<span class="dots"></span></p>
+</div>
+</body>
+</html>
