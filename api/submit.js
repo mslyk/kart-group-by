@@ -1,8 +1,9 @@
+import {verifyToken} from './auth.js';
 import {Resend} from 'resend';
 import initSqlJs from 'sql.js';
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
-import {tasks,fixtures,grade} from './assessment.js';
+import {tasks as tasksGroup1,tasksGroup2,fixtures,grade} from './assessment.js';
 const require=createRequire(import.meta.url);
 let sqlPromise;
 function sqlEngine(){if(!sqlPromise){const wasm=readFileSync(require.resolve('sql.js/dist/sql-wasm.wasm'));sqlPromise=initSqlJs({wasmBinary:wasm});}return sqlPromise;}
@@ -30,7 +31,11 @@ function evaluate(SQL,task,answer){
 export default async function handler(req,res){
  if(req.method!=='POST')return res.status(405).json({error:'Metoda niedozwolona'});
  try{
-  const {name,group,answers,startedAt,events,submissionId}=req.body||{};
+  const {name,group,answers,startedAt,events,submissionId,variant,authToken}=req.body||{};
+  if(variant!==undefined && variant!=='group1' && variant!=='group2')return res.status(400).json({error:'Nieznany wariant kartkówki.'});
+  const chosenVariant=variant==='group2'?'group2':'group1';
+  if(!verifyToken(authToken,chosenVariant))return res.status(403).json({error:'Sesja grupy wygasła lub hasło nie zostało poprawnie zweryfikowane. Skontaktuj się z nauczycielem.'});
+  const tasks=chosenVariant==='group2'?tasksGroup2:tasksGroup1;
   if(typeof name!=='string'||name.trim().length<4||name.length>120||typeof group!=='string'||!group.trim()||group.length>80||!Array.isArray(answers)||answers.length!==tasks.length||answers.some(a=>typeof a!=='string'||a.length>2500))return res.status(400).json({error:'Brak kompletnych danych kartkówki.'});
   if(!process.env.RESEND_API_KEY)return res.status(503).json({error:'Dodaj RESEND_API_KEY w ustawieniach Vercel.'});
   const SQL=await sqlEngine();
@@ -39,9 +44,9 @@ export default async function handler(req,res){
   const safeEvents=Array.isArray(events)?events.slice(0,1500).filter(e=>e&&typeof e==='object').map(e=>({at:String(e.at||'').slice(0,36),elapsedMs:Number.isFinite(e.elapsedMs)?Math.max(0,Math.round(e.elapsedMs)):0,task:Number(e.task)||0,type:String(e.type||'').slice(0,80),details:String(e.details||'').slice(0,160)})):[];
   const eventCounts={};for(const e of safeEvents)eventCounts[e.type]=(eventCounts[e.type]||0)+1;
   const eventReport=`<h2>Raport aktywności (${safeEvents.length} zdarzeń)</h2><p><b>Identyfikator podejścia:</b> ${escapeHtml(submissionId||'brak')}</p><p>${Object.entries(eventCounts).map(([key,value])=>`${escapeHtml(key)}: <b>${value}</b>`).join(' · ')||'Brak zdarzeń'}</p><table border="1" cellspacing="0" cellpadding="5"><thead><tr><th>Czas</th><th>Zadanie</th><th>Zdarzenie</th><th>Szczegóły</th></tr></thead><tbody>${safeEvents.map(e=>`<tr><td>${escapeHtml(e.at)}</td><td>${e.task}</td><td>${escapeHtml(e.type)}</td><td>${escapeHtml(e.details)}</td></tr>`).join('')}</tbody></table><p>Uwaga: zdarzenia przeglądarkowe stanowią wskazówki, nie dowód niesamodzielności. Monitorowanie nie obejmuje zdarzeń poza działającą stroną, ani treści schowka.</p>`;
-  const html=`<h2>Kartkówka SQL: GROUP BY — pisanie zapytań</h2><p><b>Uczeń:</b> ${escapeHtml(name)}<br><b>Klasa:</b> ${escapeHtml(group)}<br><b>Punkty:</b> ${total}/${max} (${percent}%)<br><b>Ocena:</b> ${escapeHtml(mark)}<br><b>Rozpoczęto (czas przeglądarki):</b> ${escapeHtml(startedAt)}<br><b>Otrzymano:</b> ${new Date().toISOString()}</p>${eventReport}${details.map(d=>`<hr><h3>${d.id}. ${escapeHtml(d.title)} — ${d.points}/${d.max} pkt</h3><p><b>Zapytanie ucznia:</b></p><pre style="white-space:pre-wrap">${escapeHtml(d.answer||'(pominięte)')}</pre><p><b>Przykładowe poprawne rozwiązanie:</b></p><pre>${escapeHtml(d.solution)}</pre><p>${escapeHtml(d.feedback)}</p>`).join('')}`;
+  const html=`<h2>Kartkówka SQL: GROUP BY — ${chosenVariant==='group2'?'GRUPA 2':'GRUPA 1'}</h2><p><b>Uczeń:</b> ${escapeHtml(name)}<br><b>Klasa:</b> ${escapeHtml(group)}<br><b>Punkty:</b> ${total}/${max} (${percent}%)<br><b>Ocena:</b> ${escapeHtml(mark)}<br><b>Rozpoczęto (czas przeglądarki):</b> ${escapeHtml(startedAt)}<br><b>Otrzymano:</b> ${new Date().toISOString()}</p>${eventReport}${details.map(d=>`<hr><h3>${d.id}. ${escapeHtml(d.title)} — ${d.points}/${d.max} pkt</h3><p><b>Zapytanie ucznia:</b></p><pre style="white-space:pre-wrap">${escapeHtml(d.answer||'(pominięte)')}</pre><p><b>Przykładowe poprawne rozwiązanie:</b></p><pre>${escapeHtml(d.solution)}</pre><p>${escapeHtml(d.feedback)}</p>`).join('')}`;
   const resend=new Resend(process.env.RESEND_API_KEY);
-  const {error}=await resend.emails.send({from:process.env.RESEND_FROM||'Kartkówki <onboarding@resend.dev>',to:['magdalena.slyk@zstil.pl'],subject:`GROUP BY · ${name.trim().replace(/[\r\n]/g,' ')} · ${mark} · ${total}/${max}`,html});
+  const {error}=await resend.emails.send({from:process.env.RESEND_FROM||'Kartkówki <onboarding@resend.dev>',to:['magdalena.slyk@zstil.pl'],subject:`GROUP BY · ${chosenVariant==='group2'?'GRUPA 2':'GRUPA 1'} · ${name.trim().replace(/[\r\n]/g,' ')} · ${mark} · ${total}/${max}`,html});
   if(error){console.error('Resend delivery error:',error);return res.status(502).json({error:'Resend nie wysłał wiadomości. Sprawdź, czy magdalena.slyk@zstil.pl jest adresem konta Resend lub czy domena nadawcy jest zweryfikowana.'});}
   return res.status(200).json({total,max,percent,grade:mark,details});
  }catch(e){console.error('Submit SQL quiz:',e);return res.status(500).json({error:'Błąd sprawdzania lub wysyłki wyników. Sprawdź konfigurację serwera.'});}

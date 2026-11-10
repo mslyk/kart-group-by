@@ -1,0 +1,7 @@
+import {createHmac,timingSafeEqual} from 'node:crypto';
+const PASSWORDS={group1:'SQL-5184',group2:'SQL-7296'};
+const KEY=()=>process.env.RESEND_API_KEY;
+function safeEq(a,b){const aa=Buffer.from(String(a)),bb=Buffer.from(String(b));return aa.length===bb.length&&timingSafeEqual(aa,bb);}
+export function createToken(variant){const payload=Buffer.from(JSON.stringify({variant,exp:Date.now()+3*60*60*1000})).toString('base64url');const signature=createHmac('sha256',KEY()).update(payload).digest('base64url');return payload+'.'+signature;}
+export function verifyToken(token,variant){try{if(typeof token!=='string'||token.length>1000||!KEY())return false;const [payload,sig,...extra]=token.split('.');if(extra.length||!payload||!sig)return false;const actual=createHmac('sha256',KEY()).update(payload).digest('base64url');if(!safeEq(actual,sig))return false;const data=JSON.parse(Buffer.from(payload,'base64url').toString('utf8'));return data.variant===variant&&Number.isFinite(data.exp)&&data.exp>Date.now();}catch{return false;}}
+export default function handler(req,res){if(req.method!=='POST')return res.status(405).json({error:'Metoda niedozwolona.'});if(!KEY())return res.status(503).json({error:'Brak konfiguracji RESEND_API_KEY na Vercel.'});const {variant,password}=req.body||{};if(!Object.hasOwn(PASSWORDS,variant)||typeof password!=='string'||!safeEq(password,PASSWORDS[variant]))return res.status(401).json({error:'Nieprawidłowe hasło dla wybranej grupy.'});return res.status(200).json({token:createToken(variant)});}

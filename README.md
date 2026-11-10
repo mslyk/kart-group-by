@@ -1,23 +1,19 @@
-# Kartkówka SQL – GROUP BY, bez HAVING
+# DATA/LAB – GROUP BY – dwie grupy na jednej stronie
 
-8 zadań praktycznych (32 pkt), w tym łatwiejsze zadanie 8: liczba zamówień według statusu. Automatyczne ocenianie po stronie serwera, wyniki i raport aktywności na e-mail.
+## Publikacja
+1. Prześlij **całą zawartość tego katalogu** do repozytorium GitHub i wdroż na Vercel. Nie podmieniaj wyłącznie index.html, ponieważ potrzebne są również nowe `api/auth.js` i `api/submit.js`.
+2. W Settings → Environment Variables ustaw **RESEND_API_KEY**, a następnie wykonaj Redeploy.
+3. Otwórz adres strony. Na pierwszym ekranie są dwie grupy, każda zabezpieczona osobnym hasłem.
 
-## Wdrożenie na Vercel
+## Hasła – przekazuj tylko właściwej grupie
+- Grupa 1: **SQL-5184**
+- Grupa 2: **SQL-7296**
 
-1. Prześlij zawartość folderu do repozytorium GitHub.
-2. Zaimportuj repozytorium do Vercel (framework: Other).
-3. Dodaj **jedną** zmienną środowiskową: `RESEND_API_KEY` z prawidłowym kluczem API Resend.
-4. Wykonaj Deploy i przetestuj kompletną kartkówkę.
+Hasła znajdują się **wyłącznie po stronie serwera** w pliku `api/auth.js`; są stałe, więc można je w przyszłości zmienić w tym pliku. Nie wymagają dodatkowych zmiennych Vercel. Uwaga: są widoczne dla osób z dostępem do kodu repozytorium; użyj prywatnego repozytorium, jeśli chcesz utrudnić ich podejrzenie.
 
-Odbiorca wpisany jest na stałe w `api/submit.js`: **magdalena.slyk@zstil.pl**. Nadawca domyślny: `Kartkówki <onboarding@resend.dev>`. Resend w trybie testowym pozwala wysyłać na adres właściciela konta Resend; jeśli podany odbiorca nie jest adresem konta, trzeba zweryfikować własną domenę nadawczą (i wtedy odpowiednio zmienić `from` w `api/submit.js` lub użyć opcjonalnego `RESEND_FROM`). Sam klucz API nie omija ograniczeń wysyłki Resend.
-
-## Raport i prywatność
-
-Po kliknięciu Rozpocznij aplikacja próbuje uruchomić pełny ekran. Rejestrowane są: start i koniec, zatwierdzanie zadań, wejście/wyjście z pełnego ekranu, błędy lub odmowa trybu pełnoekranowego, ukrycie/powrót karty, utrata/powrót focusu okna oraz kopiowanie, wycinanie i wklejanie (tylko typ i kontekst zdarzenia — nie treść schowka). Dane z dziennika są wysyłane **dopiero przy oddaniu kartkówki**. Jeżeli uczeń zamknie stronę bez oddania, ten wariant nie zapewnia doręczenia raportu. Zdarzenia nie są wiarygodnym dowodem korzystania z niedozwolonych pomocy.
-
-Przed rozpoczęciem uczniowie widzą informację o monitorowaniu. Nauczyciel powinien ustalić szkolną podstawę przetwarzania danych i politykę retencji raportów.
-
-## Ocenianie
-
-Zapytania SELECT są wykonywane na 3 zestawach danych: 4 pkt za komplet poprawnych wyników, 2 pkt za część poprawnych zestawów, 0 pkt w pozostałych przypadkach. Wysyłka wymaga środowiska serwerowego Vercel; lokalny plik `index.html` nie wyśle e-maila.
-# kart-group-by
+## Wyniki i uwagi
+- Obydwie grupy: 8 zadań za 32 pkt, niezależne polecenia i dane, ocenianie według wyników SQL na 3 zestawach danych, skala ocen bez zmian, bez HAVING.
+- Wysyłka do `magdalena.slyk@zstil.pl`. Jeśli nadawca Resend wymaga weryfikacji domeny, nadal obowiązują zasady Resend.
+- E-mail zawiera grupę, zapytania ucznia, rozwiązania, punkty, ocenę i rejestr zdarzeń.
+- Pełny ekran i monitorowanie aktywności są ograniczone możliwościami przeglądarki; nie dowodzą samodzielności ani nie wykrywają aktywności poza stroną.
+- Hasło wydaje token ważny 3 godziny. Wymagana jest aktywna funkcja serverless Vercel. Przed sprawdzianem przetestuj obie grupy i dostarczenie e-maila.
